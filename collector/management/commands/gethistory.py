@@ -21,7 +21,11 @@ class Command(BaseCommand):
         for share in shares:
             msg = 'Getting history for {}'.format(share)
             self.stdout.write(self.style.NOTICE(msg))
-            get_history_for_share(share)
+            try:
+                get_history_for_share(share)
+            except:
+                msg = 'Unable to get history for {}'.format(share)
+                self.stdout.write(self.style.NOTICE(msg))
 
         self.stdout.write(self.style.SUCCESS('Done.'))
 

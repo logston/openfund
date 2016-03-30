@@ -52,8 +52,12 @@ def get_history_for_share(share, start=None, end=None):
 
     for quote in history:
         quote = {k.lower(): v for k, v in quote.items()}
-        quote.pop('symbol')  # Don't need this
-        quote['date'] = datetime.datetime.strptime(quote['date'], '%Y-%m-%d').date()
-        quote['share'] = share
-        Quote.objects.create(**quote)
+        date = quote.get('date')
+        try:
+            quote.pop('symbol')  # Don't need this
+            quote['date'] = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+            quote['share'] = share
+            Quote.objects.create(**quote)
+        except:
+            print('Unable to create quote for {} / {}'.format(share, date))
 
