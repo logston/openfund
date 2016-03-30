@@ -9,6 +9,7 @@ class Share(models.Model):
     )
 
     symbol = models.CharField(
+        unique=True,
         max_length=16,
         db_index=True,
     )
@@ -73,6 +74,9 @@ class Quote(models.Model):
         null=True,
         blank=True,
     )
+
+    class Meta:
+        unique_together = ('share', 'date')
 
     def __str__(self):
         return '{} / {}'.format(self.share.symbol, self.date)
