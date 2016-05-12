@@ -7,6 +7,13 @@ def add_share(symbol):
     from .models import Share
 
     yfshare = YFShare(symbol)
+    info = get_info_for_yfshare(yfshare)
+    share = Share.objects.create(**info)
+
+    return share
+
+
+def get_info_for_yfshare(yfshare): 
     info = yfshare.get_info()
 
     if not info or len(info) == 1:
@@ -30,14 +37,18 @@ def add_share(symbol):
         'end': end,
     }
 
-    share = Share.objects.create(**kwargs)
-
-    return share
+    return kwargs
 
 
 def get_history_for_share(share, start=None, end=None):
-    from .models import Quote
-
+    from .models import Quote, Share
+    
+    yfshare = YFShare(share.symbol)
+    info = get_info_for_yfshare(yfshare)
+    share.start = info.get('start')
+    share.end = info.get('end')
+    share.save()
+    
     if not start:
         start = share.start
 
@@ -47,17 +58,26 @@ def get_history_for_share(share, start=None, end=None):
     start = start.strftime('%Y-%m-%d')
     end = end.strftime('%Y-%m-%d')
 
-    yfshare = YFShare(share.symbol)
     history = yfshare.get_historical(start, end)
 
+    quotes_by_date = {}
     for quote in history:
         quote = {k.lower(): v for k, v in quote.items()}
         date = quote.get('date')
-        try:
-            quote.pop('symbol')  # Don't need this
-            quote['date'] = datetime.datetime.strptime(date, '%Y-%m-%d').date()
-            quote['share'] = share
-            Quote.objects.create(**quote)
-        except:
-            print('Unable to create quote for {} / {}'.format(share, date))
+        quote.pop('symbol')  # Don't need this
+        quote['date'] = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+        quote['share'] = share
+        quotes_by_date[quote['date']] = Quote(**quote)
+
+    # remove quotes that already exist in db
+    dates = {q['date'] for q in share.quote_set.values('date')}
+    for date in dates:
+        del quotes_by_date[date]
+
+    quotes = quotes_by_date.values()
+    try:
+        Quote.objects.bulk_create(quotes)
+    except:
+        count = len(quotes) 
+        print('Unable to create {} quotes for {}'.format(count, share.symbol))
 

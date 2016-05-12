@@ -43,7 +43,9 @@ class Share(models.Model):
 class Quote(models.Model):
     share = models.ForeignKey('collector.Share')
 
-    date = models.DateField()
+    date = models.DateField( 
+        db_index=True,
+    )
 
     open = models.FloatField(
         null=True,
